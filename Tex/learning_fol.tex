@@ -1,0 +1,26 @@
+\documentclass[11pt]{article}
+
+\title{Learning FOL}
+\author{Alexander Pluska}
+
+\begin{document}
+    \maketitle
+
+    \section{Multi-sorted first-order logic}
+    \subsection{Syntax}
+
+    We consider a countably infinite set of sorts $S, T,\dots$ and for each sort a countably infinite set of variables $x, y,\dots$. Furthermore for each $n+1$-tuple of sorts $S_0,\dots, S_n$ we define a countably infinite set of function symbols $f, g,\dots$, we say that those functions are of sort $S_0\times\dots\times S_{n-1}\to S_n$. A \emph{term} of sort $S$ is defined inductively as follows:
+    \begin{itemize}
+        \item A variable $x$ of sort $S$ is a term of sort $S$.
+        \item Given a function $f$ of sort $S_0\times\dots\times S_{n-1}\to S_n$ and $n$ terms $t_0,\dots, t_{n-1}$ of sorts $S_0,\dots, S_{n-1}$,  $f(t_0,\dots, t_{n-1})$ is a term of sort $S_n$.
+    \end{itemize}
+    Given two terms $t, u$ of the same sort $S$, $t=u$ is an equation. Given equations $t_0=u_0,\dots, t_m=u_m$ and $v_0=w_0,\dots,v_n=w_n$
+    $$t_0=u_0,\dots, t_m=u_m\vdash v_0=w_0,\dots,v_n=w_n$$
+    is a sequent. A set of sequents is a \emph{theory}.
+
+    \subsection{Semantics}
+    An \emph{interpretation} is an assignment $I$ that maps each sort to a set, each variable x of sort $S$ to an element $I(x)\in I(S)$ and each function $f$ of sort $S_0\times\dots\times S_{n-1}\to S_n$ to a function $I(f):I(S_0)\times\dots\times I(S_{n-1})\to I(S_n)$. As usual $t$ is canonically extended to terms. We write $t^I$ for $I(t)$.
+    
+    We say that an interpretation $I$ \emph{satisfies} an equation $t=u$ if $t^I=u^I$. We say that an interpretation $I$ \emph{satisfies} a sequent $t_0=u_0,\dots, t_m=u_m\vdash v_0=w_0,\dots,v_n=w_n$ if it does not satisfy one of $t_0^I=u_0^I,\dots, t_m^I=u_m^I$ or it satisfies all of $v_0^I=w_0^I,\dots,v_n^I=w_n^I$. We say that an interpretation $I$ \emph{satisfies} a theory $\mathcal{T}$ if it satisfies all sequents in $\mathcal{T}$. A sequent is \emph{valid} in a theory $\mathcal{T}$ if every interpretation that satisfies $\mathcal{T}$ satisfies the sequent. A theory is \emph{consistent} if it has a model.
+
+\end{document}

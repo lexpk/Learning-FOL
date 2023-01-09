@@ -3,6 +3,33 @@
 \title{Learning FOL}
 \author{Alexander Pluska}
 
+
+\usepackage{bussproofs}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{wasysym}
+\usepackage{tikz}
+\usetikzlibrary{cd}
+
+\theoremstyle{definition}
+\newtheorem{theorem}{Theorem}[section]
+\theoremstyle{definition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathcal{E}}
+\newcommand{\A}{\mathbf A}
+\newcommand{\B}{\mathbf B}
+
 \begin{document}
     \maketitle
 
@@ -22,5 +49,79 @@
     An \emph{interpretation} is an assignment $I$ that maps each sort to a set, each variable x of sort $S$ to an element $I(x)\in I(S)$ and each function $f$ of sort $S_0\times\dots\times S_{n-1}\to S_n$ to a function $I(f):I(S_0)\times\dots\times I(S_{n-1})\to I(S_n)$. As usual $t$ is canonically extended to terms. We write $t^I$ for $I(t)$.
     
     We say that an interpretation $I$ \emph{satisfies} an equation $t=u$ if $t^I=u^I$. We say that an interpretation $I$ \emph{satisfies} a sequent $t_0=u_0,\dots, t_m=u_m\vdash v_0=w_0,\dots,v_n=w_n$ if it does not satisfy one of $t_0^I=u_0^I,\dots, t_m^I=u_m^I$ or it satisfies all of $v_0^I=w_0^I,\dots,v_n^I=w_n^I$. We say that an interpretation $I$ \emph{satisfies} a theory $\mathcal{T}$ if it satisfies all sequents in $\mathcal{T}$. A sequent is \emph{valid} in a theory $\mathcal{T}$ if every interpretation that satisfies $\mathcal{T}$ satisfies the sequent. A theory is \emph{consistent} if it has a model.
+
+    \subsection{Logic embedding}
+
+    A logic embedding is an assignment $E$ of sorts to Euclidean spaces $\R^n$ equipped with a random variable $X: \Omega\to \R^n$ and functions $f: S_0\times\dots\times S_{n-1}\to S_n$ to differentiable functions $E(f):E(S_0)\times\dots\times E(S_{n-1})\to E(S_n)$. We can extend $f$ to terms inductively.
+
+    Given a logic embedding the error of an equation $t = u$ named $e$ is
+    $$\E(E, e) = \min(1, ||t^E - u^E||_\infty),$$
+    the error of a sequent
+    $e_0,\dots, e_m\vdash f_0,\dots,f_n$
+    named $\Gamma$ is $$\E(E, \Gamma) = \min                           \left(1 - \max_i(e_i), \min_j\left(f_j\right)\right),$$
+    the error of a theory $\mathcal{T}$ is $$\E(E, \mathcal{T}) = \sum_{\Gamma\in\mathcal{T}}\E(E, \Gamma).$$
+
+	\subsection{Learning the embedding}
+
+	The following notion is inspired by graph embeddings. Given a theory the first question we must answer is what the dimensions of different sorts are including random variables and what function spaces we consider for each function.
+
+	For the functions we shall consider MLPs with ReLU activation. The random variables will be binomially distributed over the embeddings of terms of the sort. We will set dimensions and initial parameters manually, however, we plan on experimenting with different regimes and in particular online-adjustment of these in the future.
+
+	For optimization we minimize the error of the theory. We use the Adam optimizer with a learning rate of $0.001$ and a batch size of $100$. We use a learning rate scheduler to decrease the learning rate by a factor of $0.1$ every $1000$ epochs.
+
+    \subsection{Using the embedding}
+
+    We  utilize superposition. Superposition is usually defined on clauses, i.e. disjunctions of literals $\neg A_0\vee\dots\vee\neg A_{m-1}\vee B_0\vee\dots\vee B_{n-1}$. (Classically) equivalently we instead consider sequents $A_0,\dots,A_{m-1}\vdash B_0,\dots,B_{n-1}$ of atoms, which can be interpreted as $\bigwedge A_i\to \bigvee B_i$. Instead of  $A_0,\dots,A_{m-1}\vdash B_0,\dots,B_{n-1}$ we write $\A\vdash \B$. A simple superposition calculus comprises the following rules:
+	
+	Superposition (Sup):
+	\[
+	\AxiomC{$\A\vdash \B\vee l=r$}
+	\AxiomC{$\A'\vdash \B'\vee s[l']=t$}
+	\BinaryInfC{$(\A\wedge\A'\vdash \B\vee\B'\vee s[r] = t)\theta$}
+	\DisplayProof
+	\hspace*{.2cm}
+	\AxiomC{$\A\vdash \B\vee l=r$}
+	\AxiomC{$s[l']=t\wedge\A'\vdash \B'$}
+	\BinaryInfC{$(s[r] = t\wedge\A\wedge\A'\vdash \B\vee\B')\theta$}
+	\DisplayProof
+	\]
+	
+	\noindent where $\theta$ is the mgu of $l$ and $l'$ and $l'$ is not a variable.
+	
+	Equality Resolution (ER) and Equality Factoring (EF):
+	\[
+	\AxiomC{$l=l'\wedge\A\vdash \B$}
+	\UnaryInfC{$(\A\vdash \B)\theta$}
+	\DisplayProof
+	\hspace*{2cm}
+	\AxiomC{$\A\vdash \B\vee l=r\vee l'=r'$}
+	\UnaryInfC{$(r=r'\wedge\A\vdash \B\vee l=r')\theta$}
+	\DisplayProof
+	\]
+	
+	\noindent where $\theta$ is the mgu of $l$ and $l'$.
+	
+	Binary Resolution (BR), Positive and Negative Factoring (Fact).
+	\[
+	\AxiomC{$\A\vdash \B\wedge P$}
+	\AxiomC{$P'\wedge\A'\vdash \B'$}
+	\BinaryInfC{$(\A\wedge \A'\vdash \B\wedge \B')\theta$}
+	\DisplayProof
+	\hspace*{.5cm}
+	\AxiomC{$\A\vdash \B\vee P\vee P'$}
+	\UnaryInfC{$(\A\vdash \B\vee P)\theta$}
+	\DisplayProof
+	\hspace*{.5cm}
+	\AxiomC{$P\wedge P'\wedge\A\vdash \B$}
+	\UnaryInfC{$(P\wedge\A\vdash \B)\theta$}
+	\DisplayProof
+	\]
+	\noindent where $\theta$ is the mgu of $P$ and $P'$.
+	
+	Superposition operates by saturation, i.e. formulas are added by the above rules until a refutation is found (i.e. the empty) or no new formulas can be added. With this superposition is semi-complete for first-order logic. Usually this process will not terminate however and a elimination ordering is utilized to guide proof search. In our case we will guide proof search a bit differently. Assume we are given a logic embedding $\E$. We perform $A^*$ search for the empty sequent where the heuristic is determined by the error of the sequent.
+
+	\subsection{Extensions}
+
+	At the current stage there is one learning and one search step. Instead learning and search could be alternated. Since terms are naturally tree-like structures, an embedding into hyperbolic space instead of Euclidean could be considered.
 
 \end{document}
